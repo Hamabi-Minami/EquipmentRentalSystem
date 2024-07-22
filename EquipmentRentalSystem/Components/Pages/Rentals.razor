@@ -1,0 +1,169 @@
+﻿@page "/rentals"
+@using Services;
+@using Models;
+@using ViewModels;
+@using Utils;
+@inject GenericityService genericityService;
+@inject EquipmentViewModel EquipmentVM;
+@inject CustomerViewModel CustomerVM;
+@inject MessageHelper msgHelper;
+
+<h1>Rentals</h1>
+
+@* <div class="row align-items-end mb-3">
+    <div class="col-md-2">
+        <div class="form-group">
+            <label for="inputFirstName">CategoryId</label>
+            <input class="form-control" placeholder="CategoryId" @bind-value="inputCategoryId" />
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
+            <label for="inputLastName">Name</label>
+            <input class="form-control" placeholder="Name" @bind-value="inputName" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label for="inputPhone">Description</label>
+            <input class="form-control" placeholder="Description" @bind-value="inputDescription" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label for="inputEmail">DailyCost</label>
+            <input class="form-control" placeholder="DailyCost" @bind-value="inputDailyCost" />
+        </div>
+    </div>
+    <div class="col-md-2 d-flex justify-content-end align-items-end">
+        <button type="submit" class="btn btn-primary me-2" @onclick="Add">Add</button>
+        <button type="submit" class="btn btn-secondary me-2" @onclick="Update">Update</button>
+        <button type="submit" class="btn btn-danger" @onclick="Remove">Remove</button>
+    </div>
+</div>
+
+<div class="row">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Category Id</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>DailyCost</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (CustomerVM.pagedCustomers == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                @foreach (var customer in CustomerVM.pagedCustomers)
+                {
+                    <tr class="@(selectedCustomer == customer ? "table-primary" : "")" @onclick="() => Select(customer)">
+                        <td>@customer.Id</td>
+                        <td>@customer.FirstName</td>
+                        <td>@customer.LastName</td>
+                        <td>@customer.Phone</td>
+                        <td>@customer.Email</td>
+                    </tr>
+                }
+            }
+        </tbody>
+
+    </table>
+</div>
+
+<div class="pagination d-flex align-items-center justify-content-end" style="align-content: center">
+    <button class="btn btn-primary me-2" @onclick="CustomerVM.PreviousPage" disabled="@(!HasPreviousPage)">Previous</button>
+    <span class="me-2">Page @CustomerVM.currentPage of @CustomerVM.totalPages</span>
+    <button class="btn btn-primary me-2" @onclick="CustomerVM.NextPage" disabled="@(!HasNextPage)">Next</button>
+    <button class="btn btn-primary me-2" @onclick="()=>JumpPage(pageNumber)">Jump To</button>
+    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@CustomerVM.currentPage" @bind-value="@pageNumber" />
+</div>
+
+
+@code {
+
+    private bool HasPreviousPage => CustomerVM.currentPage > 1;
+    private bool HasNextPage => CustomerVM.currentPage < CustomerVM.totalPages;
+    private static int pageNumber = 0;
+
+    private int CategoryId = "";
+    private string inputName = "";
+    private string inputDescription = "";
+    private string inputDailyCost = "";
+
+    private Models.Customer selectedCustomer;
+
+    private List<Models.Customer> customers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CustomerVM.LoadCustomersAsync();
+        customers = await genericityService.GetObjects<Models.Customer>();
+    }
+
+    private void Select(Models.Customer customer)
+    {
+        selectedCustomer = customer;
+    }
+
+    private async Task Add()
+    {
+        if (string.IsNullOrEmpty(inputFirstName) || string.IsNullOrEmpty(inputLastName) || string.IsNullOrEmpty(inputPhone) || string.IsNullOrEmpty(inputEmail))
+        {
+            await msgHelper.ShowMessage("CategoryId or Description is null!");
+            return;
+        }
+        Models.Customer newCustomer = new Models.Customer
+            {
+                FirstName = inputFirstName,
+                LastName = inputLastName,
+                Phone = inputPhone,
+                Email = inputEmail
+            };
+
+        await CustomerVM.AddCustomerAsync(newCustomer);
+    }
+
+    private async Task Update()
+    {
+        if (string.IsNullOrEmpty(inputFirstName) || string.IsNullOrEmpty(inputLastName) || string.IsNullOrEmpty(inputPhone) || string.IsNullOrEmpty(inputEmail))
+        {
+            await msgHelper.ShowMessage("CategoryId or Description is null!");
+            return;
+        }
+        if (selectedCustomer == null)
+        {
+            await msgHelper.ShowMessage("No category is selected!");
+            return;
+        }
+        selectedCustomer.FirstName = inputFirstName;
+        selectedCustomer.LastName = inputLastName;
+        selectedCustomer.Phone = inputPhone;
+        selectedCustomer.Email = inputEmail;
+
+        await CustomerVM.UpdateCustomerAsync(selectedCustomer);
+    }
+
+    private async Task Remove()
+    {
+        if (selectedCustomer == null)
+        {
+            await msgHelper.ShowMessage("No category is selected");
+            return;
+        }
+        await CustomerVM.DeleteCustomerAsync(selectedCustomer);
+    }
+
+    private void JumpPage(int pageNumber)
+    {
+        if (pageNumber > 0 && pageNumber <= CustomerVM.totalPages)
+        {
+            CustomerVM.currentPage = pageNumber;
+        }
+    }
+} *@

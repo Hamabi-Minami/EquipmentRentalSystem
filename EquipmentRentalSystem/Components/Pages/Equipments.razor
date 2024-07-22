@@ -1,0 +1,201 @@
+﻿@page "/equiments"
+@using Services;
+@using Models;
+@using ViewModels;
+@using Utils;
+@inject GenericityService genericityService;
+@inject EquipmentViewModel EquipmentVM;
+@inject CustomerViewModel CustomerVM;
+@inject CategoryViewModel CategoryVM;
+@inject MessageHelper msgHelper;
+
+<h1>Equiments Management</h1>
+
+<div class="row align-items-end mb-3">
+    <div class="col-md-2">
+        <div class="form-group">
+            @* <label>CategoryId</label>
+            <input class="form-control" placeholder="CategoryId" @bind-value="selectCategoryId" /> *@
+            @if (Names==null)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                <select class="form-control" @bind="selectedCategoryName">
+                    <option value="">--Categories --</option>
+                    @foreach (var category in Names)
+                    {
+                        <option>@category</option>
+                    }
+                </select>
+            }
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
+            <label>Name</label>
+            <input class="form-control" placeholder="Name" @bind-value="inputName" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label>Description</label>
+            <input class="form-control" placeholder="Description" @bind-value="inputDescription" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label>DailyCost</label>
+            <input class="form-control" placeholder="DailyCost" @bind-value="inputDailyCost" />
+        </div>
+    </div>
+    <div class="col-md-2 d-flex justify-content-end align-items-end">
+        <button type="submit" class="btn btn-primary me-2" @onclick="Add">Add</button>
+        <button type="submit" class="btn btn-secondary me-2" @onclick="Update">Update</button>
+        <button type="submit" class="btn btn-danger" @onclick="Remove">Remove</button>
+    </div>
+</div>
+
+<div class="row">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Category Id</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>DailyCost</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (EquipmentVM.pagedEquipments == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                @foreach (var equipment in EquipmentVM.pagedEquipments)
+                {
+                    <tr class="@(selectedEquipment == equipment ? "table-primary" : "")" @onclick="() => Select(equipment)">
+                        <td>@equipment.Id</td>
+                        <td>@equipment.Category.Id</td>
+                        <td>@equipment.Name</td>
+                        <td>@equipment.Description</td>
+                        <td>@equipment.DailyCost</td>
+                    </tr>
+                }
+            }
+        </tbody>
+
+    </table>
+</div>
+
+<div class="pagination d-flex align-items-center justify-content-end" style="align-content: center">
+    <button class="btn btn-primary me-2" @onclick="EquipmentVM.PreviousPage" disabled="@(!HasPreviousPage)">Previous</button>
+    <span class="me-2">Page @EquipmentVM.currentPage of @CustomerVM.totalPages</span>
+    <button class="btn btn-primary me-2" @onclick="EquipmentVM.NextPage" disabled="@(!HasNextPage)">Next</button>
+    <button class="btn btn-primary me-2" @onclick="()=>JumpPage(pageNumber)">Jump To</button>
+    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@EquipmentVM.currentPage" @bind-value="@pageNumber" />
+</div>
+
+
+@code {
+
+    private bool HasPreviousPage => EquipmentVM.currentPage > 1;
+    private bool HasNextPage => EquipmentVM.currentPage < EquipmentVM.totalPages;
+    private static int pageNumber = 0;
+
+    private string selectedCategoryName = "";
+    private string inputName = "";
+    private string inputDescription = "";
+    private double inputDailyCost = 0;
+
+    private List<string> _names;
+    private List<string> Names
+    {
+        get => _names ??= CategoryVM.Categories.Select(p => p.Name).Distinct().ToList();
+        set => _names = value;
+    }
+
+    private Models.Equipment selectedEquipment;
+    private List<Models.Equipment> equipments;
+
+    protected override async Task OnInitializedAsync()
+    {   
+        if (CategoryVM.Categories == null || !CategoryVM.Categories.Any())
+        {
+            await CategoryVM.LoadCategoriesAsync();
+        }
+
+        Names = CategoryVM.Categories.Select(p => p.Name).Distinct().ToList();
+
+        await EquipmentVM.LoadEquipmentsAsync();
+        equipments = await genericityService.GetObjects<Models.Equipment>();
+    }
+
+    private void Select(Models.Equipment equipment)
+    {
+        selectedEquipment = equipment;
+    }
+
+    private async Task Add()
+    {
+        if (string.IsNullOrEmpty(selectedCategoryName) || string.IsNullOrEmpty(inputName) || string.IsNullOrEmpty(inputDescription) || inputDailyCost == 0)
+        {
+            await msgHelper.ShowMessage("Category or Name or Description or DailyCost is null!");
+            return;
+        }
+        var category = CategoryVM.Categories.First(p => p.Name == selectedCategoryName);
+        Models.Equipment newEquipment = new Models.Equipment
+            {
+                Category = category,
+                Name = inputName,
+                Description = inputDescription,
+                DailyCost = inputDailyCost
+            };
+
+        await EquipmentVM.AddEquipmentAsync(newEquipment);
+    }
+
+    private async Task Update()
+    {
+        if (string.IsNullOrEmpty(selectedCategoryName) || string.IsNullOrEmpty(inputName) || string.IsNullOrEmpty(inputDescription) || inputDailyCost == 0)
+        {
+            await msgHelper.ShowMessage("Category or Name or Description or DailyCost is null!");
+            return;
+        }
+        if (selectedEquipment == null)
+        {
+            await msgHelper.ShowMessage("No category is selected!");
+            return;
+        }
+
+        var category = CategoryVM.Categories.First(p => p.Name == selectedCategoryName);
+
+        selectedEquipment.Category = category;
+        selectedEquipment.Name = inputName;
+        selectedEquipment.Description = inputDescription;
+        selectedEquipment.DailyCost = inputDailyCost;
+
+        await EquipmentVM.UpdateEquipmentAsync(selectedEquipment);
+    }
+
+    private async Task Remove()
+    {
+        if (selectedEquipment == null)
+        {
+            await msgHelper.ShowMessage("No category is selected");
+            return;
+        }
+        await EquipmentVM.DeleteEquipmentAsync(selectedEquipment);
+    }
+
+    private void JumpPage(int pageNumber)
+    {
+        if (pageNumber > 0 && pageNumber <= EquipmentVM.totalPages)
+        {
+            EquipmentVM.currentPage = pageNumber;
+        }
+    }
+}

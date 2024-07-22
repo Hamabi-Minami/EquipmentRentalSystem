@@ -1,0 +1,145 @@
+﻿@page "/categories"
+@using Services;
+@using Models;
+@using ViewModels;
+@using Utils;
+@inject GenericityService genericityService;
+@inject CategoryViewModel CategoryVM;
+@inject MessageHelper msgHelper;
+
+<h1>Categories</h1>
+
+<div class="row align-items-end mb-3">
+    <div class="col-md-3">
+        <div class="form-group">
+            <label>Category Name</label>
+            <input class="form-control" placeholder="Name" @bind-value="inputName" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label>Category Description</label>
+            <input class="form-control" placeholder="Description" @bind-value="inputDescription" />
+        </div>
+    </div>
+    <div class="col-md-6 d-flex justify-content-end align-items-end">
+        <button type="submit" class="btn btn-primary me-2" @onclick="Add">Add</button>
+        <button type="submit" class="btn btn-secondary me-2" @onclick="Update">Update</button>
+        <button type="submit" class="btn btn-danger" @onclick="Remove">Remove</button>
+    </div>
+</div>
+
+<div class="row"> 
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (CategoryVM.pagedCategories == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                @foreach (var category in CategoryVM.pagedCategories)
+                {
+                    <tr class="@(selectedCategory == category ? "table-primary" : "")" @onclick="() => Select(category)">
+                        <td>@category.Id</td>
+                        <td>@category.Name</td>
+                        <td>@category.Description</td>
+                    </tr>
+                }
+            }
+        </tbody>
+
+    </table>
+</div>
+
+<div class="pagination d-flex align-items-center justify-content-end" style="align-content: center">
+    <button class="btn btn-primary me-2" @onclick="CategoryVM.PreviousPage" disabled="@(!HasPreviousPage)">Previous</button>
+    <span class="me-2">Page @CategoryVM.currentPage of @CategoryVM.totalPages</span>
+    <button class="btn btn-primary me-2" @onclick="CategoryVM.NextPage" disabled="@(!HasNextPage)">Next</button>
+    <button class="btn btn-primary me-2" @onclick="()=>JumpPage(pageNumber)">Jump To</button>
+    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@CategoryVM.currentPage" @bind-value="@pageNumber" />
+</div>
+
+
+@code {
+
+    private bool HasPreviousPage => CategoryVM.currentPage > 1;
+    private bool HasNextPage => CategoryVM.currentPage < CategoryVM.totalPages;
+    private static int pageNumber = 0;
+
+    private string inputName = "";
+    private string inputDescription = "";
+    private Models.Category selectedCategory;
+
+    private List<Models.Category> categories;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CategoryVM.LoadCategoriesAsync();
+        categories = await genericityService.GetObjects<Models.Category>();
+    }
+
+    private void Select(Models.Category category)
+    {
+        selectedCategory = category;
+    }
+
+    private async Task Add()
+    {
+        if (string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
+        {
+            await msgHelper.ShowMessage("CategoryId or Description is null!");
+            return;
+        }
+        Models.Category newCategory = new Models.Category
+            {
+                Name = inputName,
+                Description = inputDescription
+            };
+
+        await CategoryVM.AddCategoryAsync(newCategory);
+    }
+
+    private async Task Update()
+    {
+        if (string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
+        {
+            await msgHelper.ShowMessage("Name or Description is null!");
+            return;
+        }
+        if(selectedCategory == null)
+        {
+            await msgHelper.ShowMessage("No category is selected!");
+            return;
+        }
+        selectedCategory.Name = inputName;
+        selectedCategory.Description = inputDescription;
+
+        await CategoryVM.UpdateCategoryAsync(selectedCategory);
+    }
+
+    private async Task Remove()
+    {
+        if (selectedCategory == null)
+        {
+            await msgHelper.ShowMessage("No category is selected");
+            return;
+        }
+        await CategoryVM.DeleteCategoryAsync(selectedCategory);
+    }
+
+    private void JumpPage(int pageNumber)
+    {
+        if (pageNumber > 0 && pageNumber <= CategoryVM.totalPages)
+        {
+            CategoryVM.currentPage = pageNumber;
+        }
+    }
+}
