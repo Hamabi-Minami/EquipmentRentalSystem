@@ -9,6 +9,7 @@ using EquipmentRentalSystem.Models;
 using EquipmentRentalSystem.Data;
 using EquipmentRentalSystem.Services;
 using System.Collections.ObjectModel;
+using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentRentalSystem.ViewModels
 {
@@ -18,10 +19,30 @@ namespace EquipmentRentalSystem.ViewModels
         private readonly GenericityService _genericityService;
 
         // make pagenations
-        public int pageSize = 10;
-        public int currentPage = 1;
-        public List<Customer> pagedCustomers => _customers.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
-        public int totalPages => (int)Math.Ceiling((double)_customers.Count / pageSize);
+        public int PageSize = 10;
+        public int _currentPage = 1;
+
+        public int CurrentPage
+        {
+            get => _currentPage;
+            set
+            {
+                if (_currentPage != value)
+                {
+                    _currentPage = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(pagedCustomers));
+                    OnPropertyChanged(nameof(TotalPages));
+                    OnPropertyChanged(nameof(HasPreviousPage));
+                    OnPropertyChanged(nameof(HasNextPage));
+                }
+            }
+        }
+
+        public List<Customer> pagedCustomers => _customers.Skip((_currentPage - 1) * PageSize).Take(PageSize).ToList();
+        public int TotalPages => (int)Math.Ceiling((double)_customers.Count / PageSize);
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
 
         public CustomerViewModel(GenericityService genericityService)
         {
@@ -38,23 +59,42 @@ namespace EquipmentRentalSystem.ViewModels
                 {
                     _customers = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(pagedCustomers));
+                    OnPropertyChanged(nameof(TotalPages));
+                    OnPropertyChanged(nameof(HasPreviousPage));
+                    OnPropertyChanged(nameof(HasNextPage));
                 }
             }
         }
 
+
         public void PreviousPage()
         {
-            if (currentPage > 1)
+            if (_currentPage > 1)
             {
-                currentPage--;
+                _currentPage--;
             }
         }
 
         public void NextPage()
         {
-            if (currentPage < totalPages)
+            if (_currentPage < TotalPages)
             {
-                currentPage++;
+                _currentPage++;
+            }
+        }
+
+        public async Task<Boolean> CheckExist(int id, string phone, string email)
+        {
+            var existingCustomer = await _genericityService._context.Customers
+                                     .FirstOrDefaultAsync(c => c.ID == id || c.Phone == phone || c.Email == email);
+            if (existingCustomer != null)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
@@ -62,6 +102,11 @@ namespace EquipmentRentalSystem.ViewModels
         {
             var customers = await _genericityService.GetObjects<Customer>();
             Customers = new ObservableCollection<Customer>(customers);
+        }
+        public async Task Search(Dictionary<string, string> filters)
+        {
+            var result = await _genericityService.Search<Customer>(filters);
+            Customers = new ObservableCollection<Customer>(result);
         }
 
         public async Task AddCustomerAsync(Customer customer)

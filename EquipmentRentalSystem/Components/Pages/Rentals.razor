@@ -4,38 +4,121 @@
 @using ViewModels;
 @using Utils;
 @inject GenericityService genericityService;
-@inject EquipmentViewModel EquipmentVM;
+@inject RentalViewModel RentalVM;
 @inject CustomerViewModel CustomerVM;
+@inject EquipmentViewModel EquipmentVM;
 @inject MessageHelper msgHelper;
 
-<h1>Rentals</h1>
+<h1>Rental Management</h1>
 
-@* <div class="row align-items-end mb-3">
+<!-- 模态窗口 -->
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Rental</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Customer</label>
+                        <input class="form-control" value="@selectedCustomerFullName" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>Rental ID</label>
+                        <input class="form-control" value="@inputRentalID" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>Equipment</label>
+                        <select class="form-control" @bind-value="selectedEquipmentID" @bind-value:event="onchange">
+                            <option value="">-- Select Equipment --</option>
+                            @foreach (var equipment in Equipments)
+                            {
+                                <option value="@equipment.ID">@equipment.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input class="form-control" placeholder="Quantity" @bind-value="inputQuantity" />
+                    </div>
+                    <button type="button" class="btn btn-primary" @onclick="AddEquipmentToRental">Add Equipment</button>
+
+                    <table class="table mt-3">
+                        <thead>
+                            <tr>
+                                <th>Equipment</th>
+                                <th>Quantity</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in tempRentalItems)
+                            {
+                                <tr>
+                                    <td>@item.Equipment.Name*@item.Quantity</td>
+                                    <td>@item.Quantity</td>
+                                    <td>@item.Cost</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="form-group">
+                        <label>Total Cost</label>
+                        <input class="form-control" @bind-value="totalCost" readonly />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="CompleteRental">Complete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<div class="row align-items-end mb-3">
     <div class="col-md-2">
         <div class="form-group">
-            <label for="inputFirstName">CategoryId</label>
-            <input class="form-control" placeholder="CategoryId" @bind-value="inputCategoryId" />
+            @if (Customers == null)
+            {
+                <p>Loading customers...</p>
+            }
+            else
+            {
+                <select class="form-control" @bind-value="selectedCustomerID" @bind-value:event="onchange">
+                    <option value="">-- Select Customer --</option>
+                    @foreach (var customer in Customers)
+                    {
+                        <option value="@customer.ID">@customer.FirstName @customer.LastName</option>
+                    }
+                </select>
+            }
+        </div>
+    </div>
+    <div class="col-md-1">
+        <div class="form-group">
+            <label>Rental ID</label>
+            <input class="form-control" placeholder="Rental ID" @bind-value="inputRentalID" />
         </div>
     </div>
     <div class="col-md-2">
         <div class="form-group">
-            <label for="inputLastName">Name</label>
-            <input class="form-control" placeholder="Name" @bind-value="inputName" />
+            <label>Rental Date</label>
+            <input type="date" class="form-control" @bind-value="inputRentalDate" />
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="form-group">
-            <label for="inputPhone">Description</label>
-            <input class="form-control" placeholder="Description" @bind-value="inputDescription" />
+            <label>Return Date</label>
+            <input type="date" class="form-control" @bind-value="inputReturnDate" />
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="form-group">
-            <label for="inputEmail">DailyCost</label>
-            <input class="form-control" placeholder="DailyCost" @bind-value="inputDailyCost" />
-        </div>
-    </div>
-    <div class="col-md-2 d-flex justify-content-end align-items-end">
+    <div class="col-md-3 d-flex justify-content-end align-items-end">
+        <button type="submit" class="btn btn-primary me-2" @onclick="Search">Search</button>
         <button type="submit" class="btn btn-primary me-2" @onclick="Add">Add</button>
         <button type="submit" class="btn btn-secondary me-2" @onclick="Update">Update</button>
         <button type="submit" class="btn btn-danger" @onclick="Remove">Remove</button>
@@ -46,124 +129,307 @@
     <table class="table table-hover">
         <thead>
             <tr>
-                <th>Id</th>
-                <th>Category Id</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>DailyCost</th>
+                <th>Rental ID</th>
+                <th>Customer</th>
+                <th>Equipment</th>
+                <th>Rental Date</th>
+                <th>Return Date</th>
+                <th>Total Cost</th>
             </tr>
         </thead>
         <tbody>
-            @if (CustomerVM.pagedCustomers == null)
+            @if (RentalVM.PagedRentals == null)
             {
                 <p><em>Loading...</em></p>
             }
             else
             {
-                @foreach (var customer in CustomerVM.pagedCustomers)
+                @foreach (var rental in RentalVM.PagedRentals)
                 {
-                    <tr class="@(selectedCustomer == customer ? "table-primary" : "")" @onclick="() => Select(customer)">
-                        <td>@customer.Id</td>
-                        <td>@customer.FirstName</td>
-                        <td>@customer.LastName</td>
-                        <td>@customer.Phone</td>
-                        <td>@customer.Email</td>
+                    <tr class="@(selectedRental == rental ? "table-primary" : "")" @onclick="() => Select(rental)">
+                        <td>@rental.ID</td>
+                        <td>@rental.Customer.FirstName @rental.Customer.LastName</td>
+                        <td>@rental.RentalItemsDisplay</td>
+                        <td>@rental.RentalDate.ToString("yyyy-MM-dd")</td>
+                        <td>@rental.ReturnDate.ToString("yyyy-MM-dd")</td>
+                        <td>@rental.Cost</td>
                     </tr>
                 }
             }
         </tbody>
-
     </table>
 </div>
 
 <div class="pagination d-flex align-items-center justify-content-end" style="align-content: center">
-    <button class="btn btn-primary me-2" @onclick="CustomerVM.PreviousPage" disabled="@(!HasPreviousPage)">Previous</button>
-    <span class="me-2">Page @CustomerVM.currentPage of @CustomerVM.totalPages</span>
-    <button class="btn btn-primary me-2" @onclick="CustomerVM.NextPage" disabled="@(!HasNextPage)">Next</button>
-    <button class="btn btn-primary me-2" @onclick="()=>JumpPage(pageNumber)">Jump To</button>
-    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@CustomerVM.currentPage" @bind-value="@pageNumber" />
+    <button class="btn btn-primary me-2" @onclick="RentalVM.PreviousPage" disabled="@(!RentalVM.HasPreviousPage)">Previous</button>
+    <span class="me-2">Page @RentalVM.CurrentPage of @RentalVM.TotalPages</span>
+    <button class="btn btn-primary me-2" @onclick="RentalVM.NextPage" disabled="@(!RentalVM.HasNextPage)">Next</button>
+    <button class="btn btn-primary me-2" @onclick="() => JumpPage(pageNumber)">Jump To</button>
+    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@RentalVM.CurrentPage" @bind-value="@pageNumber" />
 </div>
-
 
 @code {
 
-    private bool HasPreviousPage => CustomerVM.currentPage > 1;
-    private bool HasNextPage => CustomerVM.currentPage < CustomerVM.totalPages;
+    private bool HasPreviousPage => RentalVM.CurrentPage > 1;
+    private bool HasNextPage => RentalVM.CurrentPage < EquipmentVM.TotalPages;
     private static int pageNumber = 0;
 
-    private int CategoryId = "";
-    private string inputName = "";
-    private string inputDescription = "";
-    private string inputDailyCost = "";
+    private bool showModal = false;
+    private int selectedCustomerID;
+    private string selectedCustomerFullName;
+    private int selectedEquipmentID;
+    private int inputQuantity;
+    private double totalCost;
+    private int inputRentalID = 0;
+    private DateTime inputRentalDate = DateTime.Today;
+    private DateTime inputReturnDate = DateTime.Today;
 
-    private Models.Customer selectedCustomer;
+    private List<RentalItem> tempRentalItems = new();
 
-    private List<Models.Customer> customers;
+    private List<Customer> _customers;
+    private List<Customer> Customers
+    {
+        get => _customers ??= CustomerVM.Customers.ToList();
+        set => _customers = value;
+    }
+
+    private List<Equipment> _equipments;
+    private List<Equipment> Equipments
+    {
+        get => _equipments ??= EquipmentVM.Equipments.ToList();
+        set => _equipments = value;
+    }
+
+    private Rental selectedRental;
+    private List<Rental> rentals;
 
     protected override async Task OnInitializedAsync()
     {
-        await CustomerVM.LoadCustomersAsync();
-        customers = await genericityService.GetObjects<Models.Customer>();
+        try
+        {
+            Console.WriteLine("OnInitializedAsync: Start loading data.");
+            await LoadData();
+            Console.WriteLine("OnInitializedAsync: Data loaded successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"OnInitializedAsync Error: {ex.Message}");
+        }
     }
 
-    private void Select(Models.Customer customer)
+    private async Task LoadData()
     {
-        selectedCustomer = customer;
+        try
+        {
+            if (CustomerVM.Customers == null || !CustomerVM.Customers.Any())
+            {
+                Console.WriteLine("Loading customers...");
+                await CustomerVM.LoadCustomersAsync();
+                Console.WriteLine($"Loaded {CustomerVM.Customers.Count} customers.");
+            }
+
+            if (EquipmentVM.Equipments == null || !EquipmentVM.Equipments.Any())
+            {
+                Console.WriteLine("Loading equipments...");
+                await EquipmentVM.LoadEquipmentsAsync();
+                Console.WriteLine($"Loaded {EquipmentVM.Equipments.Count} equipments.");
+            }
+
+            Customers = CustomerVM.Customers.ToList();
+            Equipments = EquipmentVM.Equipments.ToList();
+
+            Console.WriteLine("Loading rentals...");
+            await RentalVM.LoadRentalsAsync();
+            Console.WriteLine($"Loaded {RentalVM.Rentals.Count} rentals.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"LoadData Error: {ex.Message}");
+            throw;
+        }
+    }
+
+    private void OpenModal()
+    {
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        ResetModal();
+    }
+
+    private void ResetModal()
+    {
+        selectedEquipmentID = 0;
+        inputQuantity = 0;
+        totalCost = 0.0;
+        tempRentalItems.Clear();
+    }
+
+    private void AddEquipmentToRental()
+    {
+        var equipment = Equipments.FirstOrDefault(e => e.ID == selectedEquipmentID);
+        if (equipment != null && inputQuantity > 0)
+        {
+            var rentalItem = new RentalItem
+                {
+                    Equipment = equipment,
+                    Quantity = inputQuantity,
+                    Cost = equipment.DailyCost * inputQuantity // Ensure Cost is set
+                };
+            tempRentalItems.Add(rentalItem);
+            totalCost += rentalItem.Cost;
+        }
+    }
+
+    private async Task CompleteRental()
+    {
+        if (selectedCustomerID == 0 || !tempRentalItems.Any())
+        {
+            await msgHelper.ShowMessage("Customer or equipment is missing!");
+            return;
+        }
+
+        var customer = Customers.First(p => p.ID == selectedCustomerID);
+        var rental = new Rental
+            {
+                ID = inputRentalID,
+                Customer = customer,
+                RentalDate = inputRentalDate,
+                ReturnDate = inputReturnDate,
+                Cost = totalCost,
+                RentalItems = tempRentalItems.Select(ri => new RentalItem
+                {
+                    Equipment = ri.Equipment,
+                    Quantity = ri.Quantity,
+                    Cost = ri.Cost
+                }).ToList()
+            };
+
+        try
+        {
+            await RentalVM.AddRentalAsync(rental);
+            CloseModal();
+            ResetModal(); // Ensure fields are reset after adding a rental
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"CompleteRental Error: {ex.Message}");
+        }
     }
 
     private async Task Add()
     {
-        if (string.IsNullOrEmpty(inputFirstName) || string.IsNullOrEmpty(inputLastName) || string.IsNullOrEmpty(inputPhone) || string.IsNullOrEmpty(inputEmail))
+        if (selectedCustomerID == 0 || inputRentalID == 0)
         {
-            await msgHelper.ShowMessage("CategoryId or Description is null!");
+            await msgHelper.ShowMessage("Customer or RentalID is missing!");
             return;
         }
-        Models.Customer newCustomer = new Models.Customer
-            {
-                FirstName = inputFirstName,
-                LastName = inputLastName,
-                Phone = inputPhone,
-                Email = inputEmail
-            };
 
-        await CustomerVM.AddCustomerAsync(newCustomer);
+        var isExist = await RentalVM.CheckExist(inputRentalID);
+        if (isExist)
+        {
+            await msgHelper.ShowMessage("A Rental with the same ID already exists!");
+            return;
+        }
+
+        selectedCustomerFullName = Customers.FirstOrDefault(c => c.ID == selectedCustomerID)?.FirstName + " " + Customers.FirstOrDefault(c => c.ID == selectedCustomerID)?.LastName;
+        OpenModal();
+    }
+
+    private void Select(Rental rental)
+    {
+        selectedRental = rental;
+        selectedCustomerID = selectedRental.Customer.ID;
+        inputRentalID = selectedRental.ID;
+        inputRentalDate = selectedRental.RentalDate;
+        inputReturnDate = selectedRental.ReturnDate;
+    }
+
+    private async Task Search()
+    {
+        Dictionary<string, string> dict = new Dictionary<string, string>();
+
+        if (inputRentalID != 0)
+        {
+            dict.Add("ID", inputRentalID.ToString());
+        }
+
+        if (selectedCustomerID != 0)
+        {
+            dict.Add("CustomerID", selectedCustomerID.ToString());
+        }
+
+        if (inputRentalDate != DateTime.MinValue)
+        {
+            dict.Add("RentalDate", inputRentalDate.ToString("yyyy-MM-dd"));
+        }
+
+        if (inputReturnDate != DateTime.MinValue)
+        {
+            dict.Add("ReturnDate", inputReturnDate.ToString("yyyy-MM-dd"));
+        }
+
+        Console.WriteLine(dict);
+        try
+        {
+            await RentalVM.Search(dict);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Search Error: {ex.Message}");
+        }
     }
 
     private async Task Update()
     {
-        if (string.IsNullOrEmpty(inputFirstName) || string.IsNullOrEmpty(inputLastName) || string.IsNullOrEmpty(inputPhone) || string.IsNullOrEmpty(inputEmail))
+        if (selectedCustomerID == 0 || !tempRentalItems.Any())
         {
-            await msgHelper.ShowMessage("CategoryId or Description is null!");
+            await msgHelper.ShowMessage("Customer or equipment is missing!");
             return;
         }
-        if (selectedCustomer == null)
-        {
-            await msgHelper.ShowMessage("No category is selected!");
-            return;
-        }
-        selectedCustomer.FirstName = inputFirstName;
-        selectedCustomer.LastName = inputLastName;
-        selectedCustomer.Phone = inputPhone;
-        selectedCustomer.Email = inputEmail;
 
-        await CustomerVM.UpdateCustomerAsync(selectedCustomer);
+        selectedRental.Customer = Customers.First(p => p.ID == selectedCustomerID);
+        selectedRental.RentalDate = inputRentalDate;
+        selectedRental.ReturnDate = inputReturnDate;
+        selectedRental.Cost = totalCost;
+        selectedRental.RentalItems = tempRentalItems;
+
+        try
+        {
+            await RentalVM.UpdateRentalAsync(selectedRental);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Update Error: {ex.Message}");
+        }
     }
 
     private async Task Remove()
     {
-        if (selectedCustomer == null)
+        if (selectedRental == null)
         {
-            await msgHelper.ShowMessage("No category is selected");
+            await msgHelper.ShowMessage("No rental is selected");
             return;
         }
-        await CustomerVM.DeleteCustomerAsync(selectedCustomer);
+        try
+        {
+            await RentalVM.DeleteRentalAsync(selectedRental);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Remove Error: {ex.Message}");
+        }
     }
 
     private void JumpPage(int pageNumber)
     {
-        if (pageNumber > 0 && pageNumber <= CustomerVM.totalPages)
+        if (pageNumber > 0 && pageNumber <= RentalVM.TotalPages)
         {
-            CustomerVM.currentPage = pageNumber;
+            RentalVM.CurrentPage = pageNumber;
         }
     }
-} *@
+}
+

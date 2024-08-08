@@ -1,11 +1,12 @@
 -- Create the database 'test' if it does not exist
-DROP DATABASE test;
-CREATE DATABASE IF NOT EXISTS `test`;
+DROP DATABASE IF EXISTS test;
+CREATE DATABASE `test`;
 
 -- Use the database 'test'
 USE `test`;
 
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS `RentalItems`;
 DROP TABLE IF EXISTS `Rentals`;
 DROP TABLE IF EXISTS `Equipments`;
 DROP TABLE IF EXISTS `Customers`;
@@ -14,7 +15,7 @@ DROP TABLE IF EXISTS `Categories`;
 -- Create Categories table
 CREATE TABLE `Categories`
 (
-    `Id`  INT PRIMARY KEY,
+    `Id`  INT PRIMARY KEY AUTO_INCREMENT,
     `Name`        VARCHAR(255) NOT NULL UNIQUE,
     `Description` VARCHAR(255) NOT NULL
 );
@@ -22,7 +23,7 @@ CREATE TABLE `Categories`
 -- Create Customers table
 CREATE TABLE `Customers`
 (
-    `Id` INT PRIMARY KEY,
+    `Id` INT PRIMARY KEY AUTO_INCREMENT,
     `FirstName`  VARCHAR(255) NOT NULL,
     `LastName`   VARCHAR(255) NOT NULL,
     `Phone`      VARCHAR(255) NOT NULL UNIQUE,
@@ -32,7 +33,7 @@ CREATE TABLE `Customers`
 -- Create Equipments table
 CREATE TABLE `Equipments`
 (
-    `Id` INT PRIMARY KEY,
+    `Id` INT PRIMARY KEY AUTO_INCREMENT,
     `CategoryId`  INT          NOT NULL,
     `Name`        VARCHAR(255) NOT NULL UNIQUE,
     `Description` VARCHAR(255) NOT NULL,
@@ -44,10 +45,22 @@ CREATE TABLE `Equipments`
 CREATE TABLE `Rentals`
 (
     `Id`    INT PRIMARY KEY,
-    `Date`        DATETIME NOT NULL,
+    `RentalDate`        DATETIME NOT NULL,
+    `ReturnDate`        DATETIME NOT NULL,
     `CustomerId`  INT      NOT NULL,
-    `EquipmentId` INT      NOT NULL,
-    FOREIGN KEY (`CustomerId`) REFERENCES `Customers` (`Id`),
+    `Cost` DOUBLE      NOT NULL,
+    FOREIGN KEY (`CustomerId`) REFERENCES `Customers` (`Id`)
+);
+
+-- Create RentalItems table
+CREATE TABLE `RentalItems`
+(
+    `Id`    INT PRIMARY KEY AUTO_INCREMENT,
+    `RentalId`    INT NOT NULL,
+    `EquipmentId` INT NOT NULL,
+    `Quantity`    INT NOT NULL,
+    `Cost` DOUBLE NOT NULL,
+    FOREIGN KEY (`RentalId`) REFERENCES `Rentals` (`Id`),
     FOREIGN KEY (`EquipmentId`) REFERENCES `Equipments` (`Id`)
 );
 
@@ -61,14 +74,14 @@ VALUES (10, 'Power tools', 'Tools powered by an external source or mechanism.'),
 
 -- Insert customers
 INSERT INTO `Customers` (`Id`, `FirstName`, `LastName`, `Phone`, `Email`)
-VALUES (1, 'John', 'Doe', '(555) 555-1212', 'jd@sample.net'),
-       (2, 'Jane', 'Smith', '(555) 555-3434', 'js@live.com'),
-       (3, 'Michael', 'Lee', '(555) 555-5656', 'ml@sample.net');
+VALUES (1001, 'John', 'Doe', '(555) 555-1212', 'jd@sample.net'),
+       (1002, 'Jane', 'Smith', '(555) 555-3434', 'js@live.com'),
+       (1003, 'Michael', 'Lee', '(555) 555-5656', 'ml@sample.net');
 
 -- Insert equipment
 INSERT INTO `Equipments` (`Id`, `CategoryId`, `Name`, `Description`, `DailyCost`)
-VALUES (1, 10, 'Hammer drill', 'Powerful drill for concrete and masonry', 25.99),
-       (2, 20, 'Chainsaw', 'Gas-powered chainsaw for cutting wood', 49.99),
-       (3, 20, 'Lawn mower', 'Self-propelled lawn mower with mulching function', 19.99),
-       (4, 30, 'Small Compressor', '5 Gallon Compressor-Portable', 14.99),
-       (5, 50, 'Brad Nailer', 'Brad Nailer. Requires 3/4 to 1 1/2 Brad Nails', 10.99);
+VALUES (101, 10, 'Hammer drill', 'Powerful drill for concrete and masonry', 25.99),
+       (201, 20, 'Chainsaw', 'Gas-powered chainsaw for cutting wood', 49.99),
+       (202, 20, 'Lawn mower', 'Self-propelled lawn mower with mulching function', 19.99),
+       (301, 30, 'Small Compressor', '5 Gallon Compressor-Portable', 14.99),
+       (501, 50, 'Brad Nailer', 'Brad Nailer. Requires 3/4 to 1 1/2 Brad Nails', 10.99);

@@ -32,17 +32,23 @@
     </div>
     <div class="col-md-2">
         <div class="form-group">
+            <label>Equipment ID</label>
+            <input class="form-control" placeholder="ID" @bind-value="inputID" />
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
             <label>Name</label>
             <input class="form-control" placeholder="Name" @bind-value="inputName" />
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="form-group">
             <label>Description</label>
             <input class="form-control" placeholder="Description" @bind-value="inputDescription" />
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="form-group">
             <label>DailyCost</label>
             <input class="form-control" placeholder="DailyCost" @bind-value="inputDailyCost" />
@@ -60,8 +66,8 @@
     <table class="table table-hover">
         <thead>
             <tr>
-                <th>Id</th>
-                <th>Category Id</th>
+                <th>Equipment Id</th>
+                <th>Category</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>DailyCost</th>
@@ -77,8 +83,8 @@
                 @foreach (var equipment in EquipmentVM.PagedEquipments)
                 {
                     <tr class="@(selectedEquipment == equipment ? "table-primary" : "")" @onclick="() => Select(equipment)">
-                        <td>@equipment.Id</td>
-                        <td>@equipment.Category.Id</td>
+                        <td>@equipment.ID</td>
+                        <td>@equipment.Category.Name</td>
                         <td>@equipment.Name</td>
                         <td>@equipment.Description</td>
                         <td>@equipment.DailyCost</td>
@@ -103,6 +109,7 @@
     private static int pageNumber = 0;
 
     private string selectedCategoryName = "";
+    private int inputID = 0;
     private string inputName = "";
     private string inputDescription = "";
     private double inputDailyCost = 0;
@@ -133,24 +140,66 @@
     private void Select(Models.Equipment equipment)
     {
         selectedEquipment = equipment;
+        selectedCategoryName = selectedEquipment.Category.Name;
+        inputID = selectedEquipment.ID;
+        inputName = selectedEquipment.Name;
+        inputDescription = selectedEquipment.Description;
+        inputDailyCost = selectedEquipment.DailyCost;
     }
 
     private async Task Search()
     {
-        // Implement search logic here
+        Dictionary<string, string> dict = new Dictionary<string, string>();
+
+        if (inputID != 0)
+        {
+            dict.Add("ID", inputID.ToString());
+        }
+
+        if (!string.IsNullOrEmpty(inputName))
+        {
+            dict.Add("Name", inputName);
+        }
+
+        if (!string.IsNullOrEmpty(inputDescription))
+        {
+            dict.Add("Description", inputDescription);
+        }
+
+        if (inputDailyCost != 0)
+        {
+            dict.Add("DailyCost", inputDailyCost.ToString());
+        }
+
+        if (!string.IsNullOrEmpty(selectedCategoryName))
+        {
+            dict.Add("CategoryName", selectedCategoryName);
+        }
+
+        Console.WriteLine(dict);
+        await EquipmentVM.Search(dict);
     }
 
     private async Task Add()
     {
-        if (string.IsNullOrEmpty(selectedCategoryName) || string.IsNullOrEmpty(inputName) || string.IsNullOrEmpty(inputDescription) || inputDailyCost == 0)
+        if (inputID == 0 || string.IsNullOrEmpty(selectedCategoryName) || string.IsNullOrEmpty(inputName) || string.IsNullOrEmpty(inputDescription) || inputDailyCost == 0)
         {
-            await msgHelper.ShowMessage("Category or Name or Description or DailyCost is null!");
+            await msgHelper.ShowMessage("EquipmentID or Category or Name or Description or DailyCost is null!");
             return;
         }
+
+        var isExist = await EquipmentVM.CheckExist(inputID, inputName);
+        if (isExist)
+        {
+            await msgHelper.ShowMessage("An Equipment with the same ID or name already exists!");
+            return;
+        }
+
         var category = CategoryVM.Categories.First(p => p.Name == selectedCategoryName);
         Models.Equipment newEquipment = new Models.Equipment
         {
             Category = category,
+            ID = inputID,
             Name = inputName,
             Description = inputDescription,
             DailyCost = inputDailyCost

@@ -10,13 +10,19 @@
 <h1>Categories</h1>
 
 <div class="row align-items-end mb-3">
-    <div class="col-md-3">
+    <div class="col-md-2">
+        <div class="form-group">
+            <label>Category ID</label>
+            <input class="form-control" placeholder="ID" @bind-value="inputID" />
+        </div>
+    </div>
+    <div class="col-md-2">
         <div class="form-group">
             <label>Category Name</label>
             <input class="form-control" placeholder="Name" @bind-value="inputName" />
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="form-group">
             <label>Category Description</label>
             <input class="form-control" placeholder="Description" @bind-value="inputDescription" />
@@ -30,11 +36,11 @@
     </div>
 </div>
 
-<div class="row"> 
+<div class="row">
     <table class="table table-hover">
         <thead>
             <tr>
-                <th>ID</th>
+                <th>Category ID</th>
                 <th>Name</th>
                 <th>Description</th>
             </tr>
@@ -49,7 +55,7 @@
                 @foreach (var category in CategoryVM.pagedCategories)
                 {
                     <tr class="@(selectedCategory == category ? "table-primary" : "")" @onclick="() => Select(category)">
-                        <td>@category.Id</td>
+                        <td>@category.ID</td>
                         <td>@category.Name</td>
                         <td>@category.Description</td>
                     </tr>
@@ -75,6 +81,7 @@
     private bool HasNextPage => CategoryVM.currentPage < CategoryVM.totalPages;
     private static int pageNumber = 0;
 
+    private int inputID = 0;
     private string inputName = "";
     private string inputDescription = "";
     private Models.Category selectedCategory;
@@ -90,17 +97,21 @@
     private void Select(Models.Category category)
     {
         selectedCategory = category;
+        inputID = selectedCategory.ID;
+        inputName = selectedCategory.Name;
+        inputDescription = selectedCategory.Description;
     }
 
-    private async Task Add()
+    private async Task Add2()
     {
-        if (string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
+        if (inputID == 0 || string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
         {
-            await msgHelper.ShowMessage("CategoryId or Description is null!");
+            await msgHelper.ShowMessage("CategoryId or Name or Description is null!");
             return;
         }
         Models.Category newCategory = new Models.Category
             {
+                ID = inputID,
                 Name = inputName,
                 Description = inputDescription
             };
@@ -108,18 +119,46 @@
         await CategoryVM.AddCategoryAsync(newCategory);
     }
 
+    private async Task Add()
+    {
+        if (inputID == 0 || string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
+        {
+            await msgHelper.ShowMessage("CategoryId or Name or Description is null!");
+            return;
+        }
+
+        var isExist = await CategoryVM.CheckExist(inputID, inputName);
+        if(isExist)
+        {
+            await msgHelper.ShowMessage("A category with the same ID or name already exists!");
+            return;
+        }
+
+        Models.Category newCategory = new Models.Category
+            {
+                ID = inputID,
+                Name = inputName,
+                Description = inputDescription
+            };
+
+        await CategoryVM.AddCategoryAsync(newCategory);
+    }
+
+
+
     private async Task Update()
     {
-        if (string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
+        if (inputID == 0 || string.IsNullOrEmpty(inputDescription) || string.IsNullOrEmpty(inputName))
         {
             await msgHelper.ShowMessage("Name or Description is null!");
             return;
         }
-        if(selectedCategory == null)
+        if (selectedCategory == null)
         {
             await msgHelper.ShowMessage("No category is selected!");
             return;
         }
+        // selectedCategory.ID = inputID;
         selectedCategory.Name = inputName;
         selectedCategory.Description = inputDescription;
 
@@ -139,7 +178,22 @@
     private async Task Search()
     {
         Dictionary<string, string> dict = new Dictionary<string, string>();
-        dict.Add(inputName, inputDescription);
+
+        if (inputID != 0)
+        {
+            dict.Add("ID", inputID.ToString());
+        }
+
+        if (!string.IsNullOrEmpty(inputName))
+        {
+            dict.Add("Name", inputName);
+        }
+
+        if (!string.IsNullOrEmpty(inputDescription))
+        {
+            dict.Add("Description", inputDescription);
+        }
+
         Console.WriteLine(dict);
         await CategoryVM.Search(dict);
     }

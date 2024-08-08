@@ -15,6 +15,7 @@ namespace EquipmentRentalSystem.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Rental> Rentals { get; set; }
+        public DbSet<RentalItem> RentalItems { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {

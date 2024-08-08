@@ -35,7 +35,6 @@ namespace EquipmentRentalSystem
                     errorNumbersToAdd: null))
         );
 
-            builder.Services.AddTransient<CategoryService>();
             builder.Services.AddTransient<GenericityService>();
             builder.Services.AddTransient<CategoryViewModel>();
             builder.Services.AddTransient<CustomerViewModel>();

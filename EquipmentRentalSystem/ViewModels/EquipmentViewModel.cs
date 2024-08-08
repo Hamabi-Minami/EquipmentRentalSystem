@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using EquipmentRentalSystem.Models;
 using EquipmentRentalSystem.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentRentalSystem.ViewModels
 {
@@ -83,6 +84,26 @@ namespace EquipmentRentalSystem.ViewModels
         {
             var equipments = await _genericityService.GetObjects<Equipment>(e => e.Category);
             Equipments = new ObservableCollection<Equipment>(equipments);
+        }
+
+        public async Task<Boolean> CheckExist(int id, string name)
+        {
+            var existingEquipment = await _genericityService._context.Equipments
+                                     .FirstOrDefaultAsync(c => c.ID == id || c.Name == name);
+            if (existingEquipment != null)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public async Task Search(Dictionary<string, string> filters)
+        {
+            var result = await _genericityService.Search<Equipment>(filters);
+            Equipments = new ObservableCollection<Equipment>(result);
         }
 
         public async Task AddEquipmentAsync(Equipment equipment)

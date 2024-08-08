@@ -8,6 +8,8 @@ using System.Runtime.CompilerServices;
 using EquipmentRentalSystem.Models;
 using EquipmentRentalSystem.Services;
 using System.Collections.ObjectModel;
+using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 
 namespace EquipmentRentalSystem.ViewModels
@@ -66,7 +68,22 @@ namespace EquipmentRentalSystem.ViewModels
 
         public async Task Search(Dictionary<string, string> filters)
         {
-            await _genericityService.Search<Category>(filters);
+            var result = await _genericityService.Search<Category>(filters);
+            Categories = new ObservableCollection<Category>(result);
+        }
+
+        public async Task<Boolean> CheckExist(int id, string name)
+        {
+            var existingCategory = await _genericityService._context.Categories
+                                     .FirstOrDefaultAsync(c => c.ID == id || c.Name == name);
+            if (existingCategory != null)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public async Task AddCategoryAsync(Category category)
