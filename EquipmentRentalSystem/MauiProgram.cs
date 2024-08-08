@@ -5,6 +5,7 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using EquipmentRentalSystem.Data;
 using EquipmentRentalSystem.Services;
 using EquipmentRentalSystem.ViewModels;
+using Microsoft.AspNetCore.Components;
 
 
 namespace EquipmentRentalSystem
@@ -23,6 +24,7 @@ namespace EquipmentRentalSystem
 
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddScoped<MessageHelper>();
+            
             string connectionString = "Server=localhost;Database=test;User=root;Password=123456;";
 
             builder.Services.AddDbContext<AppDbContext>(options =>

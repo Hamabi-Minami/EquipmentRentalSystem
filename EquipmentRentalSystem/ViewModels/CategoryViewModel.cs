@@ -64,6 +64,11 @@ namespace EquipmentRentalSystem.ViewModels
             Categories = new ObservableCollection<Category>(categories);
         }
 
+        public async Task Search(Dictionary<string, string> filters)
+        {
+            await _genericityService.Search<Category>(filters);
+        }
+
         public async Task AddCategoryAsync(Category category)
         {
             await _genericityService.AddItemAsync(category);

@@ -1,4 +1,4 @@
-﻿@page "/equiments"
+﻿@page "/equipments"
 @using Services;
 @using Models;
 @using ViewModels;
@@ -9,24 +9,22 @@
 @inject CategoryViewModel CategoryVM;
 @inject MessageHelper msgHelper;
 
-<h1>Equiments Management</h1>
+<h1>Equipment Management</h1>
 
 <div class="row align-items-end mb-3">
     <div class="col-md-2">
         <div class="form-group">
-            @* <label>CategoryId</label>
-            <input class="form-control" placeholder="CategoryId" @bind-value="selectCategoryId" /> *@
-            @if (Names==null)
+            @if (Names == null)
             {
                 <p>Loading...</p>
             }
             else
             {
-                <select class="form-control" @bind="selectedCategoryName">
-                    <option value="">--Categories --</option>
+                <select class="form-control" @bind-value="selectedCategoryName" @bind-value:event="onchange">
+                    <option value="">-- Categories --</option>
                     @foreach (var category in Names)
                     {
-                        <option>@category</option>
+                        <option value="@category">@category</option>
                     }
                 </select>
             }
@@ -51,6 +49,7 @@
         </div>
     </div>
     <div class="col-md-2 d-flex justify-content-end align-items-end">
+        <button type="submit" class="btn btn-primary me-2" @onclick="Search">Search</button>
         <button type="submit" class="btn btn-primary me-2" @onclick="Add">Add</button>
         <button type="submit" class="btn btn-secondary me-2" @onclick="Update">Update</button>
         <button type="submit" class="btn btn-danger" @onclick="Remove">Remove</button>
@@ -69,13 +68,13 @@
             </tr>
         </thead>
         <tbody>
-            @if (EquipmentVM.pagedEquipments == null)
+            @if (EquipmentVM.PagedEquipments == null)
             {
                 <p><em>Loading...</em></p>
             }
             else
             {
-                @foreach (var equipment in EquipmentVM.pagedEquipments)
+                @foreach (var equipment in EquipmentVM.PagedEquipments)
                 {
                     <tr class="@(selectedEquipment == equipment ? "table-primary" : "")" @onclick="() => Select(equipment)">
                         <td>@equipment.Id</td>
@@ -87,23 +86,20 @@
                 }
             }
         </tbody>
-
     </table>
 </div>
 
 <div class="pagination d-flex align-items-center justify-content-end" style="align-content: center">
-    <button class="btn btn-primary me-2" @onclick="EquipmentVM.PreviousPage" disabled="@(!HasPreviousPage)">Previous</button>
-    <span class="me-2">Page @EquipmentVM.currentPage of @CustomerVM.totalPages</span>
-    <button class="btn btn-primary me-2" @onclick="EquipmentVM.NextPage" disabled="@(!HasNextPage)">Next</button>
-    <button class="btn btn-primary me-2" @onclick="()=>JumpPage(pageNumber)">Jump To</button>
-    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@EquipmentVM.currentPage" @bind-value="@pageNumber" />
+    <button class="btn btn-primary me-2" @onclick="EquipmentVM.PreviousPage" disabled="@(!EquipmentVM.HasPreviousPage)">Previous</button>
+    <span class="me-2">Page @EquipmentVM.CurrentPage of @EquipmentVM.TotalPages</span>
+    <button class="btn btn-primary me-2" @onclick="EquipmentVM.NextPage" disabled="@(!EquipmentVM.HasNextPage)">Next</button>
+    <button class="btn btn-primary me-2" @onclick="() => JumpPage(pageNumber)">Jump To</button>
+    <input class="form-control me-2" style="width: 50px; height: 30px; padding: 2px;" placeholder="@EquipmentVM.CurrentPage" @bind-value="@pageNumber" />
 </div>
 
-
 @code {
-
-    private bool HasPreviousPage => EquipmentVM.currentPage > 1;
-    private bool HasNextPage => EquipmentVM.currentPage < EquipmentVM.totalPages;
+    private bool HasPreviousPage => EquipmentVM.CurrentPage > 1;
+    private bool HasNextPage => EquipmentVM.CurrentPage < EquipmentVM.TotalPages;
     private static int pageNumber = 0;
 
     private string selectedCategoryName = "";
@@ -122,7 +118,7 @@
     private List<Models.Equipment> equipments;
 
     protected override async Task OnInitializedAsync()
-    {   
+    {
         if (CategoryVM.Categories == null || !CategoryVM.Categories.Any())
         {
             await CategoryVM.LoadCategoriesAsync();
@@ -139,6 +135,11 @@
         selectedEquipment = equipment;
     }
 
+    private async Task Search()
+    {
+        // Implement search logic here
+    }
+
     private async Task Add()
     {
         if (string.IsNullOrEmpty(selectedCategoryName) || string.IsNullOrEmpty(inputName) || string.IsNullOrEmpty(inputDescription) || inputDailyCost == 0)
@@ -148,12 +149,12 @@
         }
         var category = CategoryVM.Categories.First(p => p.Name == selectedCategoryName);
         Models.Equipment newEquipment = new Models.Equipment
-            {
-                Category = category,
-                Name = inputName,
-                Description = inputDescription,
-                DailyCost = inputDailyCost
-            };
+        {
+            Category = category,
+            Name = inputName,
+            Description = inputDescription,
+            DailyCost = inputDailyCost
+        };
 
         await EquipmentVM.AddEquipmentAsync(newEquipment);
     }
@@ -193,9 +194,9 @@
 
     private void JumpPage(int pageNumber)
     {
-        if (pageNumber > 0 && pageNumber <= EquipmentVM.totalPages)
+        if (pageNumber > 0 && pageNumber <= EquipmentVM.TotalPages)
         {
-            EquipmentVM.currentPage = pageNumber;
+            EquipmentVM.CurrentPage = pageNumber;
         }
     }
 }

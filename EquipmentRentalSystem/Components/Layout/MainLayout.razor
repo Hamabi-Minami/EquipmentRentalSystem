@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+﻿@using Models;
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager;
 
 <div class="page">
     <div class="sidebar">
@@ -7,7 +9,12 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            @* <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a> *@
+            <div class="col">
+                <lablel>User:</lablel>
+                <label>@MenuManagement.User</label>
+            </div>
+            <button @onclick="Quit">@buttonText</button>
         </div>
 
         <article class="content px-4">
@@ -15,3 +22,17 @@
         </article>
     </main>
 </div>
+
+@code{
+    private string buttonText = "Quit";
+    private void Quit()
+    {
+        MenuManagement.IsAdmin = false;
+        MenuManagement.IsShowLogin = true;
+        MenuManagement.User = "Not Login";
+        StateHasChanged();
+        NavigationManager.NavigateTo("/categories");
+        buttonText = "Login";
+    }
+
+}

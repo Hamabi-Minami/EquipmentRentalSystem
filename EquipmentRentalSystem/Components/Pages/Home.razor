@@ -4,6 +4,7 @@
 @using Models;
 @inject IJSRuntime JS;
 @inject MessageHelper msgHelper;
+@inject NavigationManager NavigationManager;
 
 <h1>Login</h1>
 
@@ -13,11 +14,11 @@
         <form>
             <div class="form-group">
                 <label for="account">Account</label>
-                <input type="text" class="form-control" id="account" placeholder="Enter account" @bind-value="account" required>
+                <input type="text" class="form-control" id="account" placeholder="Enter account" @bind-value="MenuManagement.account" required>
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" class="form-control" id="password" placeholder="Password" required @bind-value="password">
+                <input type="password" class="form-control" id="password" placeholder="Password" required @bind-value="MenuManagement.password">
             </div>
             <br />
             <button type="submit" class="btn btn-primary btn-block" @onclick="Login">Login</button>
@@ -40,15 +41,17 @@
 
 @code{
 
-    private string account;
-    private string password;
+    
 
-    private async void Login()
+    private async Task Login()
     {
-        if(account == "admin" && password == "admin")
+        if(MenuManagement.account == "admin" && MenuManagement.password == "admin")
         {
             MenuManagement.IsAdmin = true;
+            MenuManagement.IsShowLogin = false;
+            MenuManagement.User = "Administrator";
             await msgHelper.ShowMessage("Login Success!");
+            NavigationManager.NavigateTo("/categories");
         }
         else
         {

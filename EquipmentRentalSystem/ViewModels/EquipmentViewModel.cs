@@ -1,29 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using EquipmentRentalSystem.Models;
 using EquipmentRentalSystem.Services;
-using EquipmentRentalSystem.Data;
-using System.Collections.ObjectModel;
 
 namespace EquipmentRentalSystem.ViewModels
 {
-    public class EquipmentViewModel
+    public class EquipmentViewModel : INotifyPropertyChanged
     {
         private ObservableCollection<Equipment> _equipments;
         private readonly GenericityService _genericityService;
 
-        // make pagenations
-        public int pageSize = 10;
-        public int currentPage = 1;
-        public List<Equipment> pagedEquipments => _equipments.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
-        public int totalPages => (int)Math.Ceiling((double)_equipments.Count / pageSize);
+        public int PageSize { get; set; } = 10;
+        private int _currentPage = 1;
 
-        public EquipmentViewModel(GenericityService genericityService, AppDbContext context)
+        public int CurrentPage
+        {
+            get => _currentPage;
+            set
+            {
+                if (_currentPage != value)
+                {
+                    _currentPage = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(PagedEquipments));
+                    OnPropertyChanged(nameof(TotalPages));
+                    OnPropertyChanged(nameof(HasPreviousPage));
+                    OnPropertyChanged(nameof(HasNextPage));
+                }
+            }
+        }
+
+        public List<Equipment> PagedEquipments => _equipments.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToList();
+        public int TotalPages => (int)Math.Ceiling((double)_equipments.Count / PageSize);
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
+
+        public EquipmentViewModel(GenericityService genericityService)
         {
             _genericityService = genericityService;
             _equipments = new ObservableCollection<Equipment>();
@@ -38,31 +55,32 @@ namespace EquipmentRentalSystem.ViewModels
                 {
                     _equipments = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(PagedEquipments));
+                    OnPropertyChanged(nameof(TotalPages));
+                    OnPropertyChanged(nameof(HasPreviousPage));
+                    OnPropertyChanged(nameof(HasNextPage));
                 }
             }
         }
 
         public void PreviousPage()
         {
-            if (currentPage > 1)
+            if (HasPreviousPage)
             {
-                currentPage--;
+                CurrentPage--;
             }
         }
 
         public void NextPage()
         {
-            if (currentPage < totalPages)
+            if (HasNextPage)
             {
-                currentPage++;
+                CurrentPage++;
             }
         }
 
         public async Task LoadEquipmentsAsync()
         {
-            //var equipments = await _genericityService.GetObjects<Equipment>();
-            //Equipments = new ObservableCollection<Equipment>(equipments);
-
             var equipments = await _genericityService.GetObjects<Equipment>(e => e.Category);
             Equipments = new ObservableCollection<Equipment>(equipments);
         }
@@ -71,17 +89,26 @@ namespace EquipmentRentalSystem.ViewModels
         {
             await _genericityService.AddItemAsync(equipment);
             Equipments.Add(equipment);
+            OnPropertyChanged(nameof(PagedEquipments));
+            OnPropertyChanged(nameof(TotalPages));
+            OnPropertyChanged(nameof(HasPreviousPage));
+            OnPropertyChanged(nameof(HasNextPage));
         }
 
         public async Task UpdateEquipmentAsync(Equipment equipment)
         {
             await _genericityService.UpdateItemAsync(equipment);
+            OnPropertyChanged(nameof(PagedEquipments));
         }
 
         public async Task DeleteEquipmentAsync(Equipment equipment)
         {
-            await _genericityService.DeleteItemAsync<Equipment>(equipment);
+            await _genericityService.DeleteItemAsync(equipment);
             Equipments.Remove(equipment);
+            OnPropertyChanged(nameof(PagedEquipments));
+            OnPropertyChanged(nameof(TotalPages));
+            OnPropertyChanged(nameof(HasPreviousPage));
+            OnPropertyChanged(nameof(HasNextPage));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
