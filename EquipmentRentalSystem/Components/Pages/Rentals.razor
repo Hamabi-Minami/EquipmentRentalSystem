@@ -93,7 +93,7 @@
                     <option value="">-- Select Customer --</option>
                     @foreach (var customer in Customers)
                     {
-                        <option value="@customer.ID">@customer.FirstName @customer.LastName</option>
+                        <option value="@customer.ID">@customer.ID @customer.FirstName @customer.LastName</option>
                     }
                 </select>
             }
@@ -148,7 +148,7 @@
                 {
                     <tr class="@(selectedRental == rental ? "table-primary" : "")" @onclick="() => Select(rental)">
                         <td>@rental.ID</td>
-                        <td>@rental.Customer.FirstName @rental.Customer.LastName</td>
+                        <td>@rental.Customer.ID: @rental.Customer.FirstName @rental.Customer.LastName</td>
                         <td>@rental.RentalItemsDisplay</td>
                         <td>@rental.RentalDate.ToString("yyyy-MM-dd")</td>
                         <td>@rental.ReturnDate.ToString("yyyy-MM-dd")</td>
